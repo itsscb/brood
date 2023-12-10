@@ -66,9 +66,50 @@
           "brood"
         ]
       }
+    },
+    "/v1/send_spore": {
+      "post": {
+        "operationId": "brood_SendSpore",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbAcknowledgeSpore"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbSpore"
+            }
+          }
+        ],
+        "tags": [
+          "brood"
+        ]
+      }
     }
   },
   "definitions": {
+    "pbAcknowledgeSpore": {
+      "type": "object",
+      "properties": {
+        "ack": {
+          "type": "boolean"
+        }
+      },
+      "title": "AcknowledgeSpore"
+    },
     "pbJoinBrood": {
       "type": "object",
       "properties": {

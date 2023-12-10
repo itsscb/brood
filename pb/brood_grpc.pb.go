@@ -19,7 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	Brood_Join_FullMethodName = "/pb.brood/Join"
+	Brood_Join_FullMethodName      = "/pb.brood/Join"
+	Brood_SendSpore_FullMethodName = "/pb.brood/SendSpore"
 )
 
 // BroodClient is the client API for Brood service.
@@ -27,6 +28,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type BroodClient interface {
 	Join(ctx context.Context, in *JoinBrood, opts ...grpc.CallOption) (Brood_JoinClient, error)
+	SendSpore(ctx context.Context, in *Spore, opts ...grpc.CallOption) (*AcknowledgeSpore, error)
 }
 
 type broodClient struct {
@@ -69,11 +71,21 @@ func (x *broodJoinClient) Recv() (*Spore, error) {
 	return m, nil
 }
 
+func (c *broodClient) SendSpore(ctx context.Context, in *Spore, opts ...grpc.CallOption) (*AcknowledgeSpore, error) {
+	out := new(AcknowledgeSpore)
+	err := c.cc.Invoke(ctx, Brood_SendSpore_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // BroodServer is the server API for Brood service.
 // All implementations must embed UnimplementedBroodServer
 // for forward compatibility
 type BroodServer interface {
 	Join(*JoinBrood, Brood_JoinServer) error
+	SendSpore(context.Context, *Spore) (*AcknowledgeSpore, error)
 	mustEmbedUnimplementedBroodServer()
 }
 
@@ -83,6 +95,9 @@ type UnimplementedBroodServer struct {
 
 func (UnimplementedBroodServer) Join(*JoinBrood, Brood_JoinServer) error {
 	return status.Errorf(codes.Unimplemented, "method Join not implemented")
+}
+func (UnimplementedBroodServer) SendSpore(context.Context, *Spore) (*AcknowledgeSpore, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendSpore not implemented")
 }
 func (UnimplementedBroodServer) mustEmbedUnimplementedBroodServer() {}
 
@@ -118,13 +133,36 @@ func (x *broodJoinServer) Send(m *Spore) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _Brood_SendSpore_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Spore)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BroodServer).SendSpore(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Brood_SendSpore_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BroodServer).SendSpore(ctx, req.(*Spore))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Brood_ServiceDesc is the grpc.ServiceDesc for Brood service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var Brood_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "pb.brood",
 	HandlerType: (*BroodServer)(nil),
-	Methods:     []grpc.MethodDesc{},
+	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "SendSpore",
+			Handler:    _Brood_SendSpore_Handler,
+		},
+	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "Join",

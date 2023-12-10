@@ -60,6 +60,24 @@ message JoinBrood {
     repeated string topics = 2;
 }
 
+// message SendSpore {
+//     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+//         json_schema: {
+//             title: "SendSpore";
+//         };
+//     };
+//     Spore spore = 1;
+// }
+
+message AcknowledgeSpore {
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+        json_schema: {
+            title: "AcknowledgeSpore";
+        };
+    };
+    bool ack = 1;
+}
+
 service brood {
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {
         description: "brood service"
@@ -68,6 +86,13 @@ service brood {
     rpc Join(JoinBrood) returns (stream Spore) {
         option (google.api.http) = {
             post: "/v1/join"
+            body: "*"
+        };
+    }
+
+    rpc SendSpore(Spore) returns (AcknowledgeSpore) {
+        option (google.api.http) = {
+            post: "/v1/send_spore"
             body: "*"
         };
     }
