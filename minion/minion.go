@@ -37,11 +37,6 @@ func New(overlordURL, hive string, topics []string) (minion *Minion, err error) 
 
 	minion.brood = pb.NewBroodClient(conn)
 
-	go minion.brood.Join(context.Background(), &pb.JoinBrood{
-		Hive:   hive,
-		Topics: topics,
-	})
-
 	return minion, nil
 }
 
