@@ -31,8 +31,8 @@ var _ = runtime.String
 var _ = utilities.NewDoubleArray
 var _ = metadata.Join
 
-func request_Brood_Join_0(ctx context.Context, marshaler runtime.Marshaler, client BroodClient, req *http.Request, pathParams map[string]string) (Brood_JoinClient, runtime.ServerMetadata, error) {
-	var protoReq JoinBrood
+func request_Brood_Publish_0(ctx context.Context, marshaler runtime.Marshaler, client BroodClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var protoReq Spore
 	var metadata runtime.ServerMetadata
 
 	newReader, berr := utilities.IOReaderFactory(req.Body)
@@ -43,7 +43,41 @@ func request_Brood_Join_0(ctx context.Context, marshaler runtime.Marshaler, clie
 		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
 
-	stream, err := client.Join(ctx, &protoReq)
+	msg, err := client.Publish(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	return msg, metadata, err
+
+}
+
+func local_request_Brood_Publish_0(ctx context.Context, marshaler runtime.Marshaler, server BroodServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var protoReq Spore
+	var metadata runtime.ServerMetadata
+
+	newReader, berr := utilities.IOReaderFactory(req.Body)
+	if berr != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", berr)
+	}
+	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq); err != nil && err != io.EOF {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+
+	msg, err := server.Publish(ctx, &protoReq)
+	return msg, metadata, err
+
+}
+
+func request_Brood_Subscribe_0(ctx context.Context, marshaler runtime.Marshaler, client BroodClient, req *http.Request, pathParams map[string]string) (Brood_SubscribeClient, runtime.ServerMetadata, error) {
+	var protoReq Hive
+	var metadata runtime.ServerMetadata
+
+	newReader, berr := utilities.IOReaderFactory(req.Body)
+	if berr != nil {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", berr)
+	}
+	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq); err != nil && err != io.EOF {
+		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+
+	stream, err := client.Subscribe(ctx, &protoReq)
 	if err != nil {
 		return nil, metadata, err
 	}
@@ -56,54 +90,13 @@ func request_Brood_Join_0(ctx context.Context, marshaler runtime.Marshaler, clie
 
 }
 
-func request_Brood_SendSpore_0(ctx context.Context, marshaler runtime.Marshaler, client BroodClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq Spore
-	var metadata runtime.ServerMetadata
-
-	newReader, berr := utilities.IOReaderFactory(req.Body)
-	if berr != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", berr)
-	}
-	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq); err != nil && err != io.EOF {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
-	}
-
-	msg, err := client.SendSpore(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
-	return msg, metadata, err
-
-}
-
-func local_request_Brood_SendSpore_0(ctx context.Context, marshaler runtime.Marshaler, server BroodServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq Spore
-	var metadata runtime.ServerMetadata
-
-	newReader, berr := utilities.IOReaderFactory(req.Body)
-	if berr != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", berr)
-	}
-	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq); err != nil && err != io.EOF {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
-	}
-
-	msg, err := server.SendSpore(ctx, &protoReq)
-	return msg, metadata, err
-
-}
-
 // RegisterBroodHandlerServer registers the http handlers for service Brood to "mux".
 // UnaryRPC     :call BroodServer directly.
 // StreamingRPC :currently unsupported pending https://github.com/grpc/grpc-go/issues/906.
 // Note that using this registration option will cause many gRPC library features to stop working. Consider using RegisterBroodHandlerFromEndpoint instead.
 func RegisterBroodHandlerServer(ctx context.Context, mux *runtime.ServeMux, server BroodServer) error {
 
-	mux.Handle("POST", pattern_Brood_Join_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
-		err := status.Error(codes.Unimplemented, "streaming calls are not yet supported in the in-process transport")
-		_, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
-		return
-	})
-
-	mux.Handle("POST", pattern_Brood_SendSpore_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle("POST", pattern_Brood_Publish_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		var stream runtime.ServerTransportStream
@@ -111,12 +104,12 @@ func RegisterBroodHandlerServer(ctx context.Context, mux *runtime.ServeMux, serv
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/pb.Brood/SendSpore", runtime.WithHTTPPathPattern("/v1/send_spore"))
+		annotatedContext, err = runtime.AnnotateIncomingContext(ctx, mux, req, "/pb.Brood/Publish", runtime.WithHTTPPathPattern("/v1/publish"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := local_request_Brood_SendSpore_0(annotatedContext, inboundMarshaler, server, req, pathParams)
+		resp, md, err := local_request_Brood_Publish_0(annotatedContext, inboundMarshaler, server, req, pathParams)
 		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
 		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
 		if err != nil {
@@ -124,8 +117,15 @@ func RegisterBroodHandlerServer(ctx context.Context, mux *runtime.ServeMux, serv
 			return
 		}
 
-		forward_Brood_SendSpore_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+		forward_Brood_Publish_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
+	})
+
+	mux.Handle("POST", pattern_Brood_Subscribe_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		err := status.Error(codes.Unimplemented, "streaming calls are not yet supported in the in-process transport")
+		_, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+		return
 	})
 
 	return nil
@@ -169,47 +169,47 @@ func RegisterBroodHandler(ctx context.Context, mux *runtime.ServeMux, conn *grpc
 // "BroodClient" to call the correct interceptors.
 func RegisterBroodHandlerClient(ctx context.Context, mux *runtime.ServeMux, client BroodClient) error {
 
-	mux.Handle("POST", pattern_Brood_Join_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle("POST", pattern_Brood_Publish_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/pb.Brood/Join", runtime.WithHTTPPathPattern("/v1/join"))
+		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/pb.Brood/Publish", runtime.WithHTTPPathPattern("/v1/publish"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_Brood_Join_0(annotatedContext, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_Brood_Publish_0(annotatedContext, inboundMarshaler, client, req, pathParams)
 		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
 		if err != nil {
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
 
-		forward_Brood_Join_0(annotatedContext, mux, outboundMarshaler, w, req, func() (proto.Message, error) { return resp.Recv() }, mux.GetForwardResponseOptions()...)
+		forward_Brood_Publish_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
-	mux.Handle("POST", pattern_Brood_SendSpore_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+	mux.Handle("POST", pattern_Brood_Subscribe_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
 		var err error
 		var annotatedContext context.Context
-		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/pb.Brood/SendSpore", runtime.WithHTTPPathPattern("/v1/send_spore"))
+		annotatedContext, err = runtime.AnnotateContext(ctx, mux, req, "/pb.Brood/Subscribe", runtime.WithHTTPPathPattern("/v1/subscribe"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
 		}
-		resp, md, err := request_Brood_SendSpore_0(annotatedContext, inboundMarshaler, client, req, pathParams)
+		resp, md, err := request_Brood_Subscribe_0(annotatedContext, inboundMarshaler, client, req, pathParams)
 		annotatedContext = runtime.NewServerMetadataContext(annotatedContext, md)
 		if err != nil {
 			runtime.HTTPError(annotatedContext, mux, outboundMarshaler, w, req, err)
 			return
 		}
 
-		forward_Brood_SendSpore_0(annotatedContext, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+		forward_Brood_Subscribe_0(annotatedContext, mux, outboundMarshaler, w, req, func() (proto.Message, error) { return resp.Recv() }, mux.GetForwardResponseOptions()...)
 
 	})
 
@@ -217,13 +217,13 @@ func RegisterBroodHandlerClient(ctx context.Context, mux *runtime.ServeMux, clie
 }
 
 var (
-	pattern_Brood_Join_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "join"}, ""))
+	pattern_Brood_Publish_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "publish"}, ""))
 
-	pattern_Brood_SendSpore_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "send_spore"}, ""))
+	pattern_Brood_Subscribe_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "subscribe"}, ""))
 )
 
 var (
-	forward_Brood_Join_0 = runtime.ForwardResponseStream
+	forward_Brood_Publish_0 = runtime.ForwardResponseMessage
 
-	forward_Brood_SendSpore_0 = runtime.ForwardResponseMessage
+	forward_Brood_Subscribe_0 = runtime.ForwardResponseStream
 )

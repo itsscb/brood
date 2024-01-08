@@ -19,16 +19,16 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	Brood_Join_FullMethodName      = "/pb.brood/Join"
-	Brood_SendSpore_FullMethodName = "/pb.brood/SendSpore"
+	Brood_Publish_FullMethodName   = "/pb.brood/Publish"
+	Brood_Subscribe_FullMethodName = "/pb.brood/Subscribe"
 )
 
 // BroodClient is the client API for Brood service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type BroodClient interface {
-	Join(ctx context.Context, in *JoinBrood, opts ...grpc.CallOption) (Brood_JoinClient, error)
-	SendSpore(ctx context.Context, in *Spore, opts ...grpc.CallOption) (*AcknowledgeSpore, error)
+	Publish(ctx context.Context, in *Spore, opts ...grpc.CallOption) (*Acknowledgement, error)
+	Subscribe(ctx context.Context, in *Hive, opts ...grpc.CallOption) (Brood_SubscribeClient, error)
 }
 
 type broodClient struct {
@@ -39,12 +39,21 @@ func NewBroodClient(cc grpc.ClientConnInterface) BroodClient {
 	return &broodClient{cc}
 }
 
-func (c *broodClient) Join(ctx context.Context, in *JoinBrood, opts ...grpc.CallOption) (Brood_JoinClient, error) {
-	stream, err := c.cc.NewStream(ctx, &Brood_ServiceDesc.Streams[0], Brood_Join_FullMethodName, opts...)
+func (c *broodClient) Publish(ctx context.Context, in *Spore, opts ...grpc.CallOption) (*Acknowledgement, error) {
+	out := new(Acknowledgement)
+	err := c.cc.Invoke(ctx, Brood_Publish_FullMethodName, in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &broodJoinClient{stream}
+	return out, nil
+}
+
+func (c *broodClient) Subscribe(ctx context.Context, in *Hive, opts ...grpc.CallOption) (Brood_SubscribeClient, error) {
+	stream, err := c.cc.NewStream(ctx, &Brood_ServiceDesc.Streams[0], Brood_Subscribe_FullMethodName, opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &broodSubscribeClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -54,16 +63,16 @@ func (c *broodClient) Join(ctx context.Context, in *JoinBrood, opts ...grpc.Call
 	return x, nil
 }
 
-type Brood_JoinClient interface {
+type Brood_SubscribeClient interface {
 	Recv() (*Spore, error)
 	grpc.ClientStream
 }
 
-type broodJoinClient struct {
+type broodSubscribeClient struct {
 	grpc.ClientStream
 }
 
-func (x *broodJoinClient) Recv() (*Spore, error) {
+func (x *broodSubscribeClient) Recv() (*Spore, error) {
 	m := new(Spore)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -71,21 +80,12 @@ func (x *broodJoinClient) Recv() (*Spore, error) {
 	return m, nil
 }
 
-func (c *broodClient) SendSpore(ctx context.Context, in *Spore, opts ...grpc.CallOption) (*AcknowledgeSpore, error) {
-	out := new(AcknowledgeSpore)
-	err := c.cc.Invoke(ctx, Brood_SendSpore_FullMethodName, in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // BroodServer is the server API for Brood service.
 // All implementations must embed UnimplementedBroodServer
 // for forward compatibility
 type BroodServer interface {
-	Join(*JoinBrood, Brood_JoinServer) error
-	SendSpore(context.Context, *Spore) (*AcknowledgeSpore, error)
+	Publish(context.Context, *Spore) (*Acknowledgement, error)
+	Subscribe(*Hive, Brood_SubscribeServer) error
 	mustEmbedUnimplementedBroodServer()
 }
 
@@ -93,11 +93,11 @@ type BroodServer interface {
 type UnimplementedBroodServer struct {
 }
 
-func (UnimplementedBroodServer) Join(*JoinBrood, Brood_JoinServer) error {
-	return status.Errorf(codes.Unimplemented, "method Join not implemented")
+func (UnimplementedBroodServer) Publish(context.Context, *Spore) (*Acknowledgement, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Publish not implemented")
 }
-func (UnimplementedBroodServer) SendSpore(context.Context, *Spore) (*AcknowledgeSpore, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SendSpore not implemented")
+func (UnimplementedBroodServer) Subscribe(*Hive, Brood_SubscribeServer) error {
+	return status.Errorf(codes.Unimplemented, "method Subscribe not implemented")
 }
 func (UnimplementedBroodServer) mustEmbedUnimplementedBroodServer() {}
 
@@ -112,43 +112,43 @@ func RegisterBroodServer(s grpc.ServiceRegistrar, srv BroodServer) {
 	s.RegisterService(&Brood_ServiceDesc, srv)
 }
 
-func _Brood_Join_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(JoinBrood)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(BroodServer).Join(m, &broodJoinServer{stream})
-}
-
-type Brood_JoinServer interface {
-	Send(*Spore) error
-	grpc.ServerStream
-}
-
-type broodJoinServer struct {
-	grpc.ServerStream
-}
-
-func (x *broodJoinServer) Send(m *Spore) error {
-	return x.ServerStream.SendMsg(m)
-}
-
-func _Brood_SendSpore_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Brood_Publish_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Spore)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(BroodServer).SendSpore(ctx, in)
+		return srv.(BroodServer).Publish(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Brood_SendSpore_FullMethodName,
+		FullMethod: Brood_Publish_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(BroodServer).SendSpore(ctx, req.(*Spore))
+		return srv.(BroodServer).Publish(ctx, req.(*Spore))
 	}
 	return interceptor(ctx, in, info, handler)
+}
+
+func _Brood_Subscribe_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(Hive)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(BroodServer).Subscribe(m, &broodSubscribeServer{stream})
+}
+
+type Brood_SubscribeServer interface {
+	Send(*Spore) error
+	grpc.ServerStream
+}
+
+type broodSubscribeServer struct {
+	grpc.ServerStream
+}
+
+func (x *broodSubscribeServer) Send(m *Spore) error {
+	return x.ServerStream.SendMsg(m)
 }
 
 // Brood_ServiceDesc is the grpc.ServiceDesc for Brood service.
@@ -159,14 +159,14 @@ var Brood_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*BroodServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "SendSpore",
-			Handler:    _Brood_SendSpore_Handler,
+			MethodName: "Publish",
+			Handler:    _Brood_Publish_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "Join",
-			Handler:       _Brood_Join_Handler,
+			StreamName:    "Subscribe",
+			Handler:       _Brood_Subscribe_Handler,
 			ServerStreams: true,
 		},
 	},

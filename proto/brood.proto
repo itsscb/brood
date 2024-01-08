@@ -42,40 +42,33 @@ message Spore {
         };
     };
     string id = 1;
-    google.protobuf.Timestamp timestamp = 2 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    Hive hive = 2;
+    google.protobuf.Timestamp timestamp = 3 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
         example: "\"2023-12-10T00:00:00Z\""
     }];
-    string topic = 3;
-    string data = 20;
+    bytes data = 20;
 }
 
-
-message JoinBrood {
+message Hive {
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
         json_schema: {
-            title: "JoinBrood";
+            title: "Hive";
         };
     };
-    string hive = 1;
-    repeated string topics = 2;
+    string name = 1;
 }
 
-// message SendSpore {
-//     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-//         json_schema: {
-//             title: "SendSpore";
-//         };
-//     };
-//     Spore spore = 1;
-// }
-
-message AcknowledgeSpore {
+message Acknowledgement {
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
         json_schema: {
-            title: "AcknowledgeSpore";
+            title: "Acknowledgement";
         };
     };
-    bool ack = 1;
+    Spore spore = 1;
+    bool acknowledged = 2;
+    google.protobuf.Timestamp timestamp = 3 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+        example: "\"2023-12-10T00:00:00Z\""
+    }];
 }
 
 service brood {
@@ -83,17 +76,19 @@ service brood {
         description: "brood service"
     };
 
-    rpc Join(JoinBrood) returns (stream Spore) {
+    rpc Publish(Spore) returns (Acknowledgement) {
         option (google.api.http) = {
-            post: "/v1/join"
+            post: "/v1/publish"
             body: "*"
         };
     }
+    
+    rpc Subscribe(Hive) returns ( stream Spore ){
+        option (google.api.http) = {
+            post: "/v1/subscribe"
+            body: "*"
+        }; 
+    };
 
-    rpc SendSpore(Spore) returns (AcknowledgeSpore) {
-        option (google.api.http) = {
-            post: "/v1/send_spore"
-            body: "*"
-        };
-    }
+    
 }

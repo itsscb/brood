@@ -26,9 +26,41 @@
     "application/json"
   ],
   "paths": {
-    "/v1/join": {
+    "/v1/publish": {
       "post": {
-        "operationId": "brood_Join",
+        "operationId": "brood_Publish",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/pbAcknowledgement"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/pbSpore"
+            }
+          }
+        ],
+        "tags": [
+          "brood"
+        ]
+      }
+    },
+    "/v1/subscribe": {
+      "post": {
+        "operationId": "brood_Subscribe",
         "responses": {
           "200": {
             "description": "A successful response.(streaming responses)",
@@ -58,39 +90,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/pbJoinBrood"
-            }
-          }
-        ],
-        "tags": [
-          "brood"
-        ]
-      }
-    },
-    "/v1/send_spore": {
-      "post": {
-        "operationId": "brood_SendSpore",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/pbAcknowledgeSpore"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/pbSpore"
+              "$ref": "#/definitions/pbHive"
             }
           }
         ],
@@ -101,29 +101,31 @@
     }
   },
   "definitions": {
-    "pbAcknowledgeSpore": {
+    "pbAcknowledgement": {
       "type": "object",
       "properties": {
-        "ack": {
-          "type": "boolean"
-        }
-      },
-      "title": "AcknowledgeSpore"
-    },
-    "pbJoinBrood": {
-      "type": "object",
-      "properties": {
-        "hive": {
-          "type": "string"
+        "spore": {
+          "$ref": "#/definitions/pbSpore"
         },
-        "topics": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
+        "acknowledged": {
+          "type": "boolean"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "example": "2023-12-10T00:00:00Z"
         }
       },
-      "title": "JoinBrood"
+      "title": "Acknowledgement"
+    },
+    "pbHive": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        }
+      },
+      "title": "Hive"
     },
     "pbSpore": {
       "type": "object",
@@ -131,16 +133,17 @@
         "id": {
           "type": "string"
         },
+        "hive": {
+          "$ref": "#/definitions/pbHive"
+        },
         "timestamp": {
           "type": "string",
           "format": "date-time",
           "example": "2023-12-10T00:00:00Z"
         },
-        "topic": {
-          "type": "string"
-        },
         "data": {
-          "type": "string"
+          "type": "string",
+          "format": "byte"
         }
       },
       "title": "Spore"
