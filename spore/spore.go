@@ -22,3 +22,10 @@ func New(hive string, data []byte) Spore {
 		Data:      data,
 	}
 }
+
+func Channel(buf int) chan Spore {
+	if buf <= 0 {
+		return make(chan Spore)
+	}
+	return make(chan Spore, buf)
+}
